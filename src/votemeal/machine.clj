@@ -4,7 +4,7 @@
 (defn vote! [db user-id scores]
   (swap! db update (LocalDate/now) assoc user-id scores))
 
-(defn results [db]
+(defn close! [db]
   (let [ballots (get @db (LocalDate/now))]
     (reset! db {})
     {:scores (->> ballots

@@ -56,7 +56,7 @@
     {:text "Error: Invalid arguments."}))
 
 (defn results [_ _]
-  (let [{:keys [scores count]} (machine/results db)]
+  (let [{:keys [scores count]} (machine/close! db)]
     {:response_type "in_channel"
      :text (if (pos? count)
              (string/join
