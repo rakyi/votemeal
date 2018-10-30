@@ -1,6 +1,6 @@
 # votemeal
 
-Vote for places to get your next meal
+Simple Slack app for voting
 
 ## Getting Started
 
