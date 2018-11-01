@@ -2,7 +2,7 @@
   (:require [buddy.core.mac :as mac]
             [buddy.core.codecs :as codecs]
             [clojure.java.io :as io]
-            [clojure.string :as string]
+            [clojure.string :as str]
             [environ.core :refer [env]]
             [io.pedestal.http :as http]
             [io.pedestal.http.route :as route]
@@ -13,7 +13,7 @@
   (:import (java.time Instant)))
 
 (def help-text
-  (string/join
+  (str/join
    "\n"
    ["Usage: `/votemeal [action] [arg*]`"
     ""
@@ -39,27 +39,29 @@
    :text (str "Please, vote for places to eat!\n\n" help-text)})
 
 (defn args->scores [args]
-  (->> args
-       (partition 2)
-       (map (fn [[place score]]
-              [(string/lower-case place) (Integer/parseInt score)]))
-       (into {})))
+  (if (odd? (count args))
+    (throw (ex-info "Number of arguments must be even" {}))
+    (let [pairs (partition 2 args)]
+      (if (every? #{"0" "1" "2"} (map second pairs))
+        (into {} (for [[place score] pairs]
+                   [(str/lower-case place) (Integer. score)]))
+        (throw (ex-info "Each score must be a number 0, 1 or 2" {}))))))
 
 (defn vote [user-id args]
-  (if-let [scores (try (args->scores args) (catch Exception e))]
-    (if (every? #{0 1 2} (vals scores))
-      (do
-        (machine/vote! db user-id scores)
-        {:text (format "Thank you for voting! You voted:\n`%s`"
-                       (string/join " " args))})
-      {:text "Error: Each score must be a number 0, 1 or 2."})
-    {:text "Error: Invalid arguments."}))
+  (try (do
+         (machine/vote! db user-id (args->scores args))
+         (if (seq args)
+           {:text (format "Thank you for voting! You voted:\n`%s`"
+                          (str/join " " args))}
+           {:text "Thank you for voting! You reset your vote."}))
+       (catch clojure.lang.ExceptionInfo e
+         {:text (str "Error: " (.getMessage e))})))
 
 (defn close [_ _]
   (let [{:keys [scores count]} (machine/close! db)]
     {:response_type "in_channel"
      :text (if (pos? count)
-             (string/join
+             (str/join
               "\n"
               (concat
                ["*Results*"
@@ -78,7 +80,7 @@
 
 (defn votemeal
   [{{:keys [user_id text]} :form-params}]
-  (let [[action & args] (string/split text #"\s")]
+  (let [[action & args] (str/split text #"\s")]
     (ring-resp/response ((get actions action help) user_id args))))
 
 (defn recent?
@@ -94,10 +96,10 @@
             (let [headers (-> context :request :headers)
                   timestamp (some-> headers
                                     (get "x-slack-request-timestamp")
-                                    Integer/parseInt)
+                                    Integer.)
                   signature (some-> headers
                                     (get "x-slack-signature")
-                                    (string/replace-first "v0=" ""))]
+                                    (str/replace-first "v0=" ""))]
               (if (and timestamp signature (recent? timestamp (* 60 5)))
                 (let [body (-> context :request :body slurp)
                       input (str "v0:" timestamp ":" body)]
@@ -111,7 +113,7 @@
                     (chain/terminate context)))
                 (chain/terminate context))))})
 
-(def common-interceptors [auth-interceptor 
+(def common-interceptors [auth-interceptor
                           (body-params/body-params)
                           http/json-body])
 
