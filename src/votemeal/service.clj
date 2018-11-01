@@ -24,10 +24,10 @@
     "- Each pair consists of a place and score, which can be 0, 1 or 2"
     "- If you don't vote for a place, it gets assigned implicit score of 0"
     "- You can vote more than once, only your latest vote counts"
-    "`results` - publish the results and reset the votes"
+    "`close` - publish the results and reset the votes"
     ""
     "Examples:"
-    "`/votemeal vote quijote 2 breweria 0 gastrohouse 1`"]))
+    "`/votemeal vote quijote 2 gastrohouse 1 kantina 1`"]))
 
 (defonce ^:private db (atom {}))
 
@@ -55,7 +55,7 @@
       {:text "Error: Each score must be a number 0, 1 or 2."})
     {:text "Error: Invalid arguments."}))
 
-(defn results [_ _]
+(defn close [_ _]
   (let [{:keys [scores count]} (machine/close! db)]
     {:response_type "in_channel"
      :text (if (pos? count)
@@ -74,7 +74,7 @@
   {"help" help
    "remind" remind
    "vote" vote
-   "results" results})
+   "close" close})
 
 (defn votemeal
   [{{:keys [user_id text]} :form-params}]
