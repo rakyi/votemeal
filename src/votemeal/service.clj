@@ -60,7 +60,7 @@
 (defn close [_ _]
   (let [{:keys [scores count]} (machine/close! db)]
     {:response_type "in_channel"
-     :text (if (pos? count)
+     :text (if (seq scores)
              (str/join
               "\n"
               (concat
