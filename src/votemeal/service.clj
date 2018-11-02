@@ -31,10 +31,10 @@
 
 (defonce ^:private db (atom {}))
 
-(defn help [_ _]
+(defn help [& _]
   {:text help-text})
 
-(defn remind [_ _]
+(defn remind [& _]
   {:response_type "in_channel"
    :text (str "Please, vote for places to eat!\n\n" help-text)})
 
@@ -57,7 +57,7 @@
        (catch clojure.lang.ExceptionInfo e
          {:text (str "Error: " (.getMessage e))})))
 
-(defn close [_ _]
+(defn close [& _]
   (let [{:keys [scores count]} (machine/close! db)]
     {:response_type "in_channel"
      :text (if (seq scores)
