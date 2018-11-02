@@ -83,6 +83,8 @@
   (let [[action & args] (str/split text #"\s")]
     (ring-resp/response ((get actions action help) user_id args))))
 
+(def check (constantly {:status 204}))
+
 (defn recent?
   "Returns true if timestamp is less than seconds apart from now, else false."
   [timestamp seconds]
@@ -113,11 +115,12 @@
                     (chain/terminate context)))
                 (chain/terminate context))))})
 
-(def common-interceptors [auth-interceptor
-                          (body-params/body-params)
-                          http/json-body])
+(def common-interceptors [(body-params/body-params) http/json-body])
 
-(def routes #{["/" :post (conj common-interceptors `votemeal)]})
+(def command-interceptors (into [auth-interceptor] common-interceptors))
+                          
+(def routes #{["/" :post (conj command-interceptors `votemeal)]
+              ["/check" :get (conj common-interceptors `check)]})
 
 ;; Consumed by votemeal.server/create-server
 ;; See http/default-interceptors for additional options you can configure
