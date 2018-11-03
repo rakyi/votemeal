@@ -13,21 +13,19 @@
   (:import (java.time Instant)))
 
 (def help-text
-  (str/join
-   "\n"
-   ["Usage: `/votemeal [action] [arg*]`"
-    ""
-    "Available actions:"
-    "`help` - display this help"
-    "`remind` - remind current channel to vote"
-    "`vote [pair*]` - vote for places to eat"
-    "- Each pair consists of a place and score, which can be 0, 1 or 2"
-    "- If you don't vote for a place, it gets assigned implicit score of 0"
-    "- You can vote more than once, only your latest vote counts"
-    "`close` - publish the results and reset the votes"
-    ""
-    "Examples:"
-    "`/votemeal vote quijote 2 gastrohouse 1 kantina 1`"]))
+  "Usage: `/votemeal [action] [arg*]`
+
+Available actions:
+`help` - display this help
+`remind` - remind current channel to vote
+`vote [pair*]` - vote for places to eat
+- Each pair consists of a place and score, which can be 0, 1 or 2
+- If you don't vote for a place, it gets assigned implicit score of 0
+- You can vote more than once, only your latest vote counts
+`close` - publish the results and reset the votes
+
+Examples:
+`/votemeal vote quijote 2 gastrohouse 1 kantina 1`")
 
 (defonce ^:private db (atom {}))
 
@@ -88,7 +86,8 @@
 (defn recent?
   "Returns true if timestamp is less than seconds apart from now, else false."
   [timestamp seconds]
-  (< (Math/abs (- (.getEpochSecond (Instant/now)) timestamp)) seconds))
+  (< (Math/abs (- (.getEpochSecond (Instant/now)) timestamp))
+     seconds))
 
 (def auth-interceptor
   "Interceptor to verify requests from Slack.
@@ -118,7 +117,7 @@
 (def common-interceptors [(body-params/body-params) http/json-body])
 
 (def command-interceptors (into [auth-interceptor] common-interceptors))
-                          
+
 (def routes #{["/" :post (conj command-interceptors `votemeal)]
               ["/check" :get (conj common-interceptors `check)]})
 
