@@ -5,12 +5,13 @@
   (swap! db update (LocalDate/now) assoc user-id scores))
 
 (defn close! [db]
-  (let [ballots (get @db (LocalDate/now))]
+  (let [ballots (get @db (LocalDate/now))
+        cnt (count ballots)]
     (reset! db {})
     {:scores (->> ballots
                   vals
                   (apply merge-with +)
                   (map (fn [[place score]]
-                          [place (/ score (count ballots))]))
+                         [place (/ score cnt)]))
                   (into {}))
-     :count (count ballots)}))
+     :count cnt}))
