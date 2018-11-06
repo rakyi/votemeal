@@ -1,6 +1,7 @@
 (ns votemeal.service-test
   (:require [clojure.test :refer :all]
-            [votemeal.service :as service]))
+            [votemeal.service :as service])
+  (:import [clojure.lang ExceptionInfo]))
 
 (deftest valid-args->score
   (is (=
@@ -14,10 +15,10 @@
 
 (deftest odd-args->score
   (is (thrown?
-       Exception
+       ExceptionInfo
        (service/args->scores ["a" "1" "1" "0" "test"]))))
 
 (deftest invalid-args->score
   (is (thrown?
-       Exception
+       ExceptionInfo
        (service/args->scores ["a" "1" "1" "0" "test" "str"]))))
