@@ -1,7 +1,7 @@
 (ns votemeal.machine-test
   (:require [clojure.test :refer :all]
             [votemeal.machine :as machine])
-  (:import (java.time LocalDate)))
+  (:import [java.time LocalDate]))
 
 (deftest close!
   (let [db (atom {(LocalDate/now) {"user-1" {"a" 1 "b" 0 "c" 2 "d" 2}

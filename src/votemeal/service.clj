@@ -10,7 +10,8 @@
             [io.pedestal.interceptor.chain :as chain]
             [ring.util.response :as ring-resp]
             [votemeal.machine :as machine])
-  (:import (java.time Instant)))
+  (:import [clojure.lang ExceptionInfo]
+           [java.time Instant]))
 
 (def help-text
   "Usage: `/votemeal [action] [arg*]`
@@ -52,7 +53,7 @@ Examples:
            {:text (format "Thank you for voting! You voted:\n`%s`"
                           (str/join " " args))}
            {:text "Thank you for voting! You reset your vote."}))
-       (catch clojure.lang.ExceptionInfo e
+       (catch ExceptionInfo e
          {:text (str "Error: " (.getMessage e))})))
 
 (defn close [& _]
