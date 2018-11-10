@@ -9,7 +9,7 @@
 (defn close! [db]
   (let [ballots (:poll @db)
         cnt (count ballots)]
-    (reset! db {})
+    (reset! db {:poll {} :users {}})
     {:scores (->> ballots
                   vals
                   (apply merge-with +)
