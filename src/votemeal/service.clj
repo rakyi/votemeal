@@ -90,9 +90,11 @@ Examples:
               "\n"
               (concat
                ["*List of voters*"]
-               (map (fn [user]
-                      (str "- " (-> user :profile :display_name)))
-                    (vals users))))
+               (->> users
+                    vals
+                    (map #(-> % :profile :display_name))
+                    sort
+                    (map #(str "- " %)))))
              "No votes registered.")})
 
 (defn close [& _]
