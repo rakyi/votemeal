@@ -85,7 +85,7 @@ Examples:
 
 (defn voters [& _]
     {:response_type "in_channel"
-     :text (if-let [users (update-users db)]
+     :text (if-let [users (seq (update-users db))]
              (str/join
               "\n"
               (concat
