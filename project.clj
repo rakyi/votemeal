@@ -9,6 +9,8 @@
                  [io.pedestal/pedestal.jetty "0.5.4"]
                  [io.pedestal/pedestal.service "0.5.4"]
                  [org.clojure/clojure "1.9.0"]
+                 [org.clojure/core.async "0.4.474"]
+                 [org.julienxx/clj-slack "0.5.6"]
                  [org.slf4j/jcl-over-slf4j "1.7.25"]
                  [org.slf4j/jul-to-slf4j "1.7.25"]
                  [org.slf4j/log4j-over-slf4j "1.7.25"]]

@@ -1,7 +1,10 @@
 (ns votemeal.service
   (:require [buddy.core.mac :as mac]
             [buddy.core.codecs :as codecs]
+            [clj-slack.users]
+            [clojure.core.async :as async :refer [>!! <!! chan thread]]
             [clojure.java.io :as io]
+            [clojure.set :as set]
             [clojure.string :as str]
             [environ.core :refer [env]]
             [io.pedestal.http :as http]
@@ -23,12 +26,17 @@ Available actions:
 - Each pair consists of a place and score, which can be 0, 1 or 2
 - If you don't vote for a place, it gets assigned implicit score of 0
 - You can vote more than once, only your latest vote counts
+`voters` - publish a list of users who voted till now
 `close` - publish the results and reset the votes
 
 Examples:
 `/votemeal vote quijote 2 gastrohouse 1 kantina 1`")
 
-(defonce ^:private db (atom {}))
+(defonce ^:private db (atom {:poll {} :users {}}))
+
+(def slack-connection
+  {:api-url "https://slack.com/api"
+   :token (env :slack-access-token)})
 
 (defn help [& _]
   {:text help-text})
@@ -56,25 +64,58 @@ Examples:
        (catch ExceptionInfo e
          {:text (str "Error: " (.getMessage e))})))
 
-(defn close [& _]
-  (let [{:keys [scores count]} (machine/close! db)]
+(defn unidentified-users [db]
+  (let [{:keys [poll users]} @db
+        voted (-> poll keys set)
+        identified (-> users keys set)]
+    (set/difference voted identified)))
+
+(defn update-users
+  "Obtains user info of yet unidentified users and adds it to db. Returns all
+  users."
+  [db]
+  (when-let [unidentified (seq (unidentified-users db))]
+    (let [c (chan)]
+      (doseq [user-id unidentified]
+        (thread (>!! c (clj-slack.users/info slack-connection user-id))))
+      (dotimes [_ (count unidentified)]
+        (when-let [user (:user (<!! c))]
+          (machine/update-user! db user)))))
+  (:users @db))
+
+(defn voters [& _]
     {:response_type "in_channel"
-     :text (if (seq scores)
+     :text (if-let [users (update-users db)]
              (str/join
               "\n"
               (concat
-               ["*Results*"
-                "```"]
-               (for [[place score] (sort-by val > scores)]
-                 (format "%-16s %.2f" place (float score)))
-               ["```"
-                (str "Number of voters: " count)]))
-             "No votes registered.")}))
+               ["*List of voters*"]
+               (map (fn [user]
+                      (str "- " (-> user :profile :display_name)))
+                    (vals users))))
+             "No votes registered.")})
+
+(defn close [& _]
+  (let [{:keys [scores count]} (machine/close! db)]
+    {:response_type "in_channel"
+     :text (str/join
+            "\n"
+            (concat
+             ["*Results*"]
+             (if (seq scores)
+               (concat
+                ["```"]
+                (for [[place score] (sort-by val > scores)]
+                  (format "%-16s %.2f" place (float score)))
+                ["```"])
+               ["No scores."])
+             [(str "Number of voters: " count)]))}))
 
 (def actions
   {"help" help
    "remind" remind
    "vote" vote
+   "voters" voters
    "close" close})
 
 (defn votemeal

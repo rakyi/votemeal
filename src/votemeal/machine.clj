@@ -1,11 +1,13 @@
-(ns votemeal.machine
-  (:import [java.time LocalDate]))
+(ns votemeal.machine)
 
 (defn vote! [db user-id scores]
-  (swap! db update (LocalDate/now) assoc user-id scores))
+  (swap! db update :poll assoc user-id scores))
+
+(defn update-user! [db user]
+  (swap! db update :users assoc (:id user) user))
 
 (defn close! [db]
-  (let [ballots (get @db (LocalDate/now))
+  (let [ballots (:poll @db)
         cnt (count ballots)]
     (reset! db {})
     {:scores (->> ballots
