@@ -26,11 +26,12 @@ Available actions:
 - Each pair consists of a place and score, which can be 0, 1 or 2
 - If you don't vote for a place, it gets assigned implicit score of 0
 - You can vote more than once, only your latest vote counts
-`voters` - publish a list of users who voted till now
+`voters [publish]` - display and optionally publish a list of users who voted till now
 `close` - publish the results and reset the votes
 
 Examples:
-`/votemeal vote quijote 2 gastrohouse 1 kantina 1`")
+`/votemeal vote quijote 2 gastrohouse 1 kantina 1`
+`/votemeal voters publish`")
 
 (defonce ^:private db (atom {:poll {} :users {}}))
 
@@ -83,8 +84,14 @@ Examples:
           (machine/update-user! db user)))))
   (:users @db))
 
-(defn voters [& _]
-    {:response_type "in_channel"
+(defn user-name [user]
+  (let [display_name (-> user :profile :display_name)]
+    (if (seq display_name)
+      display_name
+      (:real_name user))))
+
+(defn voters [_ [arg]]
+    {:response_type (if (= arg "publish") "in_channel" "ephemeral")
      :text (if-let [users (seq (update-users db))]
              (str/join
               "\n"
@@ -92,7 +99,7 @@ Examples:
                ["*List of voters*"]
                (->> users
                     vals
-                    (map #(-> % :profile :display_name))
+                    (map user-name)
                     sort
                     (map #(str "- " %)))))
              "No votes registered.")})
