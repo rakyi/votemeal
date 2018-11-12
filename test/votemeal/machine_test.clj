@@ -9,4 +9,4 @@
           (machine/close! db)
           {:scores {"a" 1/2 "b" 1/2 "c" 3/2 "d" 2}
            :count 2}))
-    (is (= @db {}))))
+    (is (= @db {:poll {} :users {}}))))
