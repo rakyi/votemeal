@@ -81,7 +81,7 @@ Examples:
         (thread (>!! c (clj-slack.users/info slack-connection user-id))))
       (dotimes [_ (count unidentified)]
         (when-let [user (:user (<!! c))]
-          (machine/update-user! db user)))))
+          (machine/add-user! db user)))))
   (:users @db))
 
 (defn user-name [user]

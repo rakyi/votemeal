@@ -3,7 +3,7 @@
 (defn vote! [db user-id scores]
   (swap! db update :poll assoc user-id scores))
 
-(defn update-user! [db user]
+(defn add-user! [db user]
   (swap! db update :users assoc (:id user) user))
 
 (defn close! [db]
