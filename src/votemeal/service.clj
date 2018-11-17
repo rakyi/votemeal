@@ -41,10 +41,12 @@ Examples:
   {:api-url "https://slack.com/api"
    :token (env :slack-access-token)})
 
-(defn help [& _]
+(defmulti invoke :action)
+
+(defmethod invoke :help [cmd]
   {:text help-text})
 
-(defn remind [& _]
+(defmethod invoke :remind [cmd]
   {:response_type "in_channel"
    :text (str "Please, vote for places to eat!\n\n" help-text)})
 
@@ -57,7 +59,7 @@ Examples:
                    [(str/lower-case place) (Integer. score)]))
         (throw (ex-info "Each score must be a number 0, 1 or 2" {}))))))
 
-(defn vote [user-id args]
+(defmethod invoke :vote [{:keys [user-id args]}]
   (try (do
          (machine/vote! db user-id (args->scores args))
          (if (seq args)
@@ -92,21 +94,21 @@ Examples:
       display_name
       (:real_name user))))
 
-(defn voters [_ [arg]]
-    {:response_type (if (= arg "publish") "in_channel" "ephemeral")
-     :text (if-let [users (seq (update-users db))]
-             (str/join
-              "\n"
-              (concat
-               ["*List of voters*"]
-               (->> users
-                    vals
-                    (map user-name)
-                    sort
-                    (map #(str "- " %)))))
-             "No votes registered.")})
+(defmethod invoke :voters [{[arg] :args}]
+  {:response_type (if (= arg "publish") "in_channel" "ephemeral")
+   :text (if-let [users (seq (update-users db))]
+           (str/join
+            "\n"
+            (concat
+             ["*List of voters*"]
+             (->> users
+                  vals
+                  (map user-name)
+                  sort
+                  (map #(str "- " %)))))
+           "No votes registered.")})
 
-(defn close [& _]
+(defmethod invoke :close [cmd]
   (let [{:keys [scores count]} (machine/close! db)]
     {:response_type "in_channel"
      :text (str/join
@@ -122,17 +124,15 @@ Examples:
                ["No scores."])
              [(str "Number of voters: " count)]))}))
 
-(def actions
-  {"help" help
-   "remind" remind
-   "vote" vote
-   "voters" voters
-   "close" close})
+(defmethod invoke :default [cmd]
+  (invoke (assoc cmd :action :help)))
 
 (defn votemeal
   [{{:keys [user_id text]} :form-params}]
   (let [[action & args] (str/split text #"\s")]
-    (ring-resp/response ((get actions action help) user_id args))))
+    (ring-resp/response (invoke {:user-id user_id
+                                 :action (keyword action)
+                                 :args args}))))
 
 (def check (constantly {:status 204}))
 
