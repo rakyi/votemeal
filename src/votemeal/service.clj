@@ -1,20 +1,22 @@
 (ns votemeal.service
-  (:require [buddy.core.mac :as mac]
-            [buddy.core.codecs :as codecs]
-            [clj-slack.users]
-            [clojure.core.async :as async :refer [>!! <!! chan thread]]
-            [clojure.java.io :as io]
-            [clojure.set :as set]
-            [clojure.string :as str]
-            [environ.core :refer [env]]
-            [io.pedestal.http :as http]
-            [io.pedestal.http.route :as route]
-            [io.pedestal.http.body-params :as body-params]
-            [io.pedestal.interceptor.chain :as chain]
-            [ring.util.response :as ring-resp]
-            [votemeal.machine :as machine])
-  (:import [clojure.lang ExceptionInfo]
-           [java.time Instant]))
+  (:require
+   [buddy.core.codecs :as codecs]
+   [buddy.core.mac :as mac]
+   [clj-slack.users]
+   [clojure.core.async :as async :refer [<!! >!!]]
+   [clojure.java.io :as jio]
+   [clojure.set :as set]
+   [clojure.string :as str]
+   [environ.core :refer [env]]
+   [io.pedestal.http :as http]
+   [io.pedestal.http.body-params :as body-params]
+   [io.pedestal.http.route :as route]
+   [io.pedestal.interceptor.chain :as chain]
+   [ring.util.response :as ring-resp]
+   [votemeal.machine :as machine])
+  (:import
+   [clojure.lang ExceptionInfo]
+   [java.time Instant]))
 
 (def help-text
   "Usage: `/votemeal [action] [arg*]`
@@ -76,9 +78,9 @@ Examples:
   users."
   [db]
   (when-let [unidentified (seq (unidentified-users db))]
-    (let [c (chan)]
+    (let [c (async/chan)]
       (doseq [user-id unidentified]
-        (thread (>!! c (clj-slack.users/info slack-connection user-id))))
+        (async/thread (>!! c (clj-slack.users/info slack-connection user-id))))
       (dotimes [_ (count unidentified)]
         (when-let [user (:user (<!! c))]
           (machine/add-user! db user)))))
@@ -160,7 +162,7 @@ Examples:
                                    :alg :hmac+sha256})
                     ;; ServletInputStream can be read only once, so we put a
                     ;; copy of the body back.
-                    (let [body-stream (io/input-stream (.getBytes body))]
+                    (let [body-stream (jio/input-stream (.getBytes body))]
                       (update context :request assoc :body body-stream))
                     (chain/terminate context)))
                 (chain/terminate context))))})
