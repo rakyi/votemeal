@@ -60,14 +60,14 @@ Examples:
         (throw (ex-info "Each score must be a number 0, 1 or 2" {}))))))
 
 (defmethod invoke :vote [{:keys [user-id args]}]
-  (try (do
-         (machine/vote! db user-id (args->scores args))
-         (if (seq args)
-           {:text (format "Thank you for voting! You voted:\n`%s`"
-                          (str/join " " args))}
-           {:text "Thank you for voting! You reset your vote."}))
-       (catch ExceptionInfo e
-         {:text (str "Error: " (.getMessage e))})))
+  (try
+    (machine/vote! db user-id (args->scores args))
+    (if (seq args)
+      {:text (format "Thank you for voting! You voted:\n`%s`"
+                     (str/join " " args))}
+      {:text "Thank you for voting! You reset your vote."})
+    (catch ExceptionInfo e
+      {:text (str "Error: " (.getMessage e))})))
 
 (defn unidentified-users [db]
   (let [{:keys [poll users]} @db
