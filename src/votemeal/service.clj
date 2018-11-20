@@ -19,11 +19,12 @@
    [java.time Instant]))
 
 (def help-text
-  "Usage: `/votemeal [action] [arg*]`
+  "Usage: `%s [action] [arg*]`
+
+Vote for places to eat at.
 
 Available actions:
-`help` - display this help
-`remind` - remind current channel to vote
+`help [publish]` - display and optionally publish this help
 `vote [pair*]` - vote for places to eat
 - Each pair consists of a place and score, which can be 0, 1 or 2
 - If you don't vote for a place, it gets assigned implicit score of 0
@@ -43,12 +44,9 @@ Examples:
 
 (defmulti invoke :action)
 
-(defmethod invoke :help [cmd]
-  {:text help-text})
-
-(defmethod invoke :remind [cmd]
-  {:response_type "in_channel"
-   :text (str "Please, vote for places to eat!\n\n" help-text)})
+(defmethod invoke :help [{command :command [arg] :args}]
+  {:response_type (if (= arg "publish") "in_channel" "ephemeral")
+   :text (format help-text command)})
 
 (defn args->scores [args]
   (if (odd? (count args))
@@ -128,11 +126,12 @@ Examples:
   (invoke (assoc cmd :action :help)))
 
 (defn votemeal
-  [{{:keys [user_id text]} :form-params}]
+  [{{:keys [command text user_id]} :form-params}]
   (let [[action & args] (str/split text #"\s")]
-    (ring-resp/response (invoke {:user-id user_id
+    (ring-resp/response (invoke {:command command
                                  :action (keyword action)
-                                 :args args}))))
+                                 :args args
+                                 :user-id user_id}))))
 
 (def check (constantly {:status 204}))
 
