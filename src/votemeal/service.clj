@@ -33,8 +33,8 @@ Available actions:
 `close` - publish the results and reset the votes
 
 Examples:
-`/%1$s vote quijote 2 gastrohouse 1 kantina 1`
-`/%1$s voters publish`" command))
+`%1$s vote quijote 2 gastrohouse 1 kantina 1`
+`%1$s voters publish`" command))
 
 (defonce ^:private db (atom {:poll {} :users {}}))
 
