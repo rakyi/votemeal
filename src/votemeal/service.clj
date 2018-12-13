@@ -18,8 +18,8 @@
    [clojure.lang ExceptionInfo]
    [java.time Instant]))
 
-(def help-text
-  "Usage: `%s [action] [arg*]`
+(defn help-text [command]
+  (format "Usage: `%1$s [action] [arg*]`
 
 Vote for places to eat at.
 
@@ -33,8 +33,8 @@ Available actions:
 `close` - publish the results and reset the votes
 
 Examples:
-`/votemeal vote quijote 2 gastrohouse 1 kantina 1`
-`/votemeal voters publish`")
+`/%1$s vote quijote 2 gastrohouse 1 kantina 1`
+`/%1$s voters publish`" command))
 
 (defonce ^:private db (atom {:poll {} :users {}}))
 
@@ -46,7 +46,7 @@ Examples:
 
 (defmethod invoke :help [{command :command [arg] :args}]
   {:response_type (if (= arg "publish") "in_channel" "ephemeral")
-   :text (format help-text command)})
+   :text (help-text command)})
 
 (defn args->scores [args]
   (if (odd? (count args))
