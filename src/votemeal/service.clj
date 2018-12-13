@@ -88,17 +88,17 @@ Examples:
 
 (defn user-name [user]
   (let [display_name (-> user :profile :display_name)]
-    (if (seq display_name)
-      display_name
-      (:real_name user))))
+    (if (str/blank? display_name)
+      (:real_name user)
+      display_name)))
 
 (defmethod invoke :voters [{[arg] :args}]
   {:response_type (if (= arg "publish") "in_channel" "ephemeral")
    :text (if-let [users (seq (update-users db))]
            (str/join
             "\n"
-            (concat
-             ["*List of voters*"]
+            (cons
+             "*List of voters*"
              (->> users
                   vals
                   (map user-name)
