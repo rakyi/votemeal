@@ -19,28 +19,31 @@
    [java.time Instant]))
 
 (defn help-text [command]
-  (format "Usage: `%1$s [action] [arg*]`
-
-Vote for places to eat at.
+  (format "Usage: `%1$s action [arg*]`
 
 Available actions:
 `help [publish]` - display and optionally publish this help
-`vote [pair*]` - vote for places to eat
-- Each pair consists of a place and score, which can be 0, 1 or 2
-- If you don't vote for a place, it gets assigned implicit score of 0
+`new [candidate*]` - create a new poll replacing an existing one
+`vote [rank*]` - vote for candidates by grouping them to comma separated ranks
+- Each rank consists of one or more candidates of the same preference separated by space
+- Unranked candidates are considered to be the least preferred
 - You can vote more than once, only your latest vote counts
+`candidates [publish]` - display and optionally publish a list of candidates
 `voters [publish]` - display and optionally publish a list of users who voted till now
 `close` - publish the results and reset the votes
 
 Examples:
-`%1$s vote quijote 2 gastrohouse 1 kantina 1`
+`%1$s new apple banana cherry kiwi orange`
+`%1$s vote banana, apple orange, kiwi`
 `%1$s voters publish`" command))
 
-(defonce ^:private db (atom {:poll {} :users {}}))
+(defonce ^:private db (atom nil))
 
 (def slack-connection
   {:api-url "https://slack.com/api"
    :token (env :slack-access-token)})
+
+(def max-candidates 32)
 
 (defmulti invoke :action)
 
@@ -48,28 +51,51 @@ Examples:
   {:response_type (if (= arg "publish") "in_channel" "ephemeral")
    :text (help-text command)})
 
-(defn args->scores [args]
-  (if (odd? (count args))
-    (throw (ex-info "Number of arguments must be even" {}))
-    (let [pairs (partition 2 args)]
-      (if (every? #{"0" "1" "2"} (map second pairs))
-        (into {} (for [[place score] pairs]
-                   [(str/lower-case place) (Integer. score)]))
-        (throw (ex-info "Each score must be a number 0, 1 or 2" {}))))))
+(defmethod invoke :new [{args :args}]
+  (let [candidates (set args)]
+    (cond
+      (< (count candidates) 2)
+      {:text "There must be at least two candidates"}
 
-(defmethod invoke :vote [{:keys [user-id args]}]
-  (try
-    (machine/vote! db user-id (args->scores args))
-    (if (seq args)
-      {:text (format "Thank you for voting! You voted:\n`%s`"
-                     (str/join " " args))}
-      {:text "Thank you for voting! You reset your vote."})
-    (catch ExceptionInfo e
-      {:text (str "Error: " (.getMessage e))})))
+      (> (count candidates) max-candidates)
+      {:text (format "There can be at most %d candidates" max-candidates)}
+
+      :else
+      (do
+        (machine/new db candidates)
+        {:response_type "in_channel"}))))
+
+(defn ballot [candidates input]
+  (let [ranks (some-> input (str/split #",\s"))
+        ranking (mapv #(str/split % #"\s") ranks)
+        ranked (flatten ranking)
+        unranked (vec (set/difference candidates (set ranked)))]
+    (cond
+      (and input (apply (complement distinct?) ranked))
+      (throw (ex-info "Each candidate can be ranked only once" {}))
+
+      (not-every? candidates ranked)
+      (throw (ex-info "You can vote only for the specified candidates" {}))
+
+      :else
+      (if (seq unranked)
+        (conj ranking unranked)
+        ranking))))
+
+(defmethod invoke :vote [{:keys [user-id input]}]
+  (if @db
+    (try
+      (machine/vote db user-id (ballot (-> @db :poll :candidates) input))
+      (if (str/blank? input)
+        {:text "Thank you for voting! You reset your vote."}
+        {:text (format "Thank you for voting! You voted:\n`%s`" input)})
+      (catch ExceptionInfo e
+        {:text (str "Error: " (.getMessage e))}))
+    {:text "You must create a poll first."}))
 
 (defn unidentified-users [db]
   (let [{:keys [poll users]} @db
-        voted (-> poll keys set)
+        voted (-> poll :ballots keys set)
         identified (-> users keys set)]
     (set/difference voted identified)))
 
@@ -83,7 +109,7 @@ Examples:
         (async/thread (>!! c (clj-slack.users/info slack-connection user-id))))
       (dotimes [_ (count unidentified)]
         (when-let [user (:user (<!! c))]
-          (machine/add-user! db user)))))
+          (machine/add-user db user)))))
   (:users @db))
 
 (defn user-name [user]
@@ -91,6 +117,16 @@ Examples:
     (if (str/blank? display_name)
       (:real_name user)
       display_name)))
+
+(defmethod invoke :candidates [{[arg] :args}]
+  {:response_type (if (= arg "publish") "in_channel" "ephemeral")
+   :text (if-let [candidates (-> @db :poll :candidates)]
+           (str/join
+            "\n"
+            (cons
+             "*List of candidates*"
+             (map #(str "- " %) (sort candidates))))
+           "You must create a poll first.")})
 
 (defmethod invoke :voters [{[arg] :args}]
   {:response_type (if (= arg "publish") "in_channel" "ephemeral")
@@ -107,29 +143,30 @@ Examples:
            "No votes registered.")})
 
 (defmethod invoke :close [cmd]
-  (let [{:keys [scores count]} (machine/close! db)]
-    {:response_type "in_channel"
-     :text (str/join
-            "\n"
-            (concat
-             ["*Results*"]
-             (if (seq scores)
-               (concat
-                ["```"]
-                (for [[place score] (sort-by val > scores)]
-                  (format "%-16s %.2f" place (float score)))
-                ["```"])
-               ["No scores."])
-             [(str "Number of voters: " count)]))}))
+  (if @db
+    (let [{:keys [winners count]} (machine/close db)]
+      {:response_type "in_channel"}
+      :text (str/join
+             "\n"
+             (cons
+              "*Results*"
+              (if (pos? count)
+                (concat
+                 (map #(str "- " %) winners)
+                 [(str "Number of voters: " count)])
+                ["No ballots."]))))
+    {:text "You must create a poll first."}))
 
 (defmethod invoke :default [cmd]
   (invoke (assoc cmd :action :help)))
 
 (defn votemeal
   [{{:keys [command text user_id]} :form-params}]
-  (let [[action & args] (str/split text #"\s")]
+  (let [[action input] (str/split text #"\s" 2)
+        args (some-> input (str/split #"\s"))]
     (ring-resp/response (invoke {:command command
                                  :action (keyword action)
+                                 :input input
                                  :args args
                                  :user-id user_id}))))
 

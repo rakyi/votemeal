@@ -3,22 +3,24 @@
             [votemeal.service :as service])
   (:import [clojure.lang ExceptionInfo]))
 
-(deftest valid-args->score
-  (is (=
-       (service/args->scores ["a" "1" "1" "0" "test" "2"])
-       {"a" 1 "1" 0 "test" 2})))
+(def candidates #{"a" "b" "c" "d"})
 
-(deftest no-args->score
+(deftest valid-ballot
   (is (=
-       (service/args->scores [])
-       {})))
+       (service/ballot candidates "a, b c, d")
+       [["a"] ["b" "c"] ["d"]])))
 
-(deftest odd-args->score
+(deftest no-args-ballot
+  (is (=
+       (service/ballot candidates nil)
+       [(vec candidates)])))
+
+(deftest unknown-candidate-ballot
   (is (thrown?
        ExceptionInfo
-       (service/args->scores ["a" "1" "1" "0" "test"]))))
+       (service/ballot candidates "a, b c, e"))))
 
-(deftest invalid-args->score
+(deftest duplicate-candidate-ballot
   (is (thrown?
        ExceptionInfo
-       (service/args->scores ["a" "1" "1" "0" "test" "str"]))))
+       (service/ballot candidates "a, b a, c"))))

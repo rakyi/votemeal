@@ -1,19 +1,23 @@
-(ns votemeal.machine)
+(ns votemeal.machine
+  (:require [votemeal.schulze :as schulze]))
 
-(defn vote! [db user-id scores]
-  (swap! db update :poll assoc user-id scores))
+(defn new [db candidates]
+  (reset! db {:poll {:candidates candidates
+                     :ballots {}}
+              :users {}}))
 
-(defn add-user! [db user]
+(defn vote [db user-id ballot]
+  (swap! db update-in [:poll :ballots] assoc user-id ballot))
+
+(defn add-user [db user]
   (swap! db update :users assoc (:id user) user))
 
-(defn close! [db]
-  (let [ballots (:poll @db)
-        cnt (count ballots)]
-    (reset! db {:poll {} :users {}})
-    {:scores (->> ballots
-                  vals
-                  (apply merge-with +)
-                  (map (fn [[place score]]
-                         [place (/ score cnt)]))
-                  (into {}))
-     :count cnt}))
+(defn close [db]
+  (let [poll (:poll @db)
+        {:keys [ballots candidates]} poll]
+    (reset! db nil)
+    {:winners (->> ballots
+                   vals
+                   frequencies
+                   (schulze/winners candidates))
+     :count (count ballots)}))
