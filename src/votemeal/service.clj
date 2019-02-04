@@ -30,7 +30,7 @@ Available actions:
 - You can vote more than once, only your latest vote counts
 `candidates [publish]` - display and optionally publish a list of candidates
 `voters [publish]` - display and optionally publish a list of users who voted till now
-`close` - publish the results and reset the votes
+`close` - close the poll an publish the results
 
 Examples:
 `%1$s new apple banana cherry kiwi orange`
