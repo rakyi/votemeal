@@ -24,9 +24,7 @@
 
 (defn strongest-paths [candidates preferences]
   (reduce (fn [paths [x y z]]
-            (let [strength (max (get paths [x y])
-                                (min (get paths [x z]) (get paths [z y])))]
-              (assoc paths [x y] strength)))
+            (update paths [x y] max (min (paths [x z]) (paths [z y]))))
           (init-paths candidates preferences)
           (filter #(apply distinct? %) (combo/selections candidates 3))))
 
@@ -39,5 +37,5 @@
   (let [paths (->> weighted-rankings
                    compute-preferences
                    (strongest-paths (seq candidates)))
-        path-comp (fn [a b] (> (get paths [a b]) (get paths [b a])))]
+        path-comp (fn [a b] (> (paths [a b]) (paths [b a])))]
     (sort path-comp candidates)))  ;; We ignore ties.
