@@ -18,4 +18,8 @@
        (first (schulze/winners #{\a \b \c} {[[\a \b] [\c]] 1
                                             [[\c] [\a \b]] 1
                                             [[\b] [\c \a]] 1}))
-       \b)))
+       \b))
+  (is (=
+       (set (schulze/winners #{\a \b \c} nil))
+       #{\a \b \c})))
+
