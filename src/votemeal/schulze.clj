@@ -23,13 +23,12 @@
              [path strength])))
 
 (defn strongest-paths [candidates preferences]
-  (let [paths (transient (init-paths candidates preferences))]
-    (doseq [[x y z] (combo/selections candidates 3)
-            :when (distinct? x y z)
-            :let [strength (max (get paths [x y])
-                                (min (get paths [x z]) (get paths [z y])))]]
-      (assoc! paths [x y] strength))
-    (persistent! paths)))
+  (reduce (fn [paths [x y z]]
+            (let [strength (max (get paths [x y])
+                                (min (get paths [x z]) (get paths [z y])))]
+              (assoc paths [x y] strength)))
+          (init-paths candidates preferences)
+          (filter #(apply distinct? %) (combo/selections candidates 3))))
 
 (defn winners
   "Takes a collection of candidates and map of their weighted rankings and

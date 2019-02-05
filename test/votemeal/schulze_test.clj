@@ -2,7 +2,7 @@
   (:require [clojure.test :refer :all]
             [votemeal.schulze :as schulze]))
 
-(deftest ordering
+(deftest winners
   ;; Example taken from https://en.wikipedia.org/wiki/Schulze_method
   (is (=
        (schulze/winners #{\a \b \c \d \e} {[[\a] [\c] [\b] [\e] [\d]] 5
