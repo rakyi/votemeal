@@ -145,18 +145,18 @@ Examples:
 (defmethod invoke :close [cmd]
   (if @db
     (let [{:keys [winners count]} (machine/close db)]
-      {:response_type "in_channel"}
-      :text (str/join
-             "\n"
-             (cons
-              "*Results*"
-              (if (pos? count)
-                (concat
-                 (map-indexed (fn [i candidate]
-                                (format "%d. %s" (inc i) candidate))
-                              winners)
-                 [(str "Number of voters: " count)])
-                ["No ballots."]))))
+      {:response_type "in_channel"
+       :text (str/join
+              "\n"
+              (cons
+               "*Results*"
+               (if (pos? count)
+                 (concat
+                  (map-indexed (fn [i candidate]
+                                 (format "%d. %s" (inc i) candidate))
+                               winners)
+                  [(str "Number of voters: " count)])
+                 ["No ballots."])))})
     {:text "You must create a poll first."}))
 
 (defmethod invoke :default [cmd]
