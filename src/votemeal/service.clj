@@ -154,7 +154,7 @@ Examples:
                  (concat
                   (map-indexed
                    (fn [i rank]
-                     (format "%d. %s" (inc i) (str/join " " (sort rank))))
+                     (format "%d. %s" (inc i) (str/join ", " (sort rank))))
                    winners)
                   [(str "Number of voters: " count)])
                  ["No ballots."])))})
