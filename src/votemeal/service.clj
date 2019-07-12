@@ -65,9 +65,9 @@ Examples:
         (machine/new db candidates)
         {:response_type "in_channel"}))))
 
-(defn ballot [candidates input]
-  (let [ranks (some-> input (str/split #",\s"))
-        ranking (mapv #(str/split % #"\s") ranks)
+(defn make-ballot [candidates input]
+  (let [ranks (some-> input (str/split #"\s*,\s*"))
+        ranking (mapv #(str/split % #"\s+") ranks)
         ranked (flatten ranking)
         unranked (vec (set/difference candidates (set ranked)))]
     (cond
@@ -85,7 +85,7 @@ Examples:
 (defmethod invoke :vote [{:keys [user-id input]}]
   (if @db
     (try
-      (machine/vote db user-id (ballot (-> @db :poll :candidates) input))
+      (machine/vote db user-id (make-ballot (-> @db :poll :candidates) input))
       (if (str/blank? input)
         {:text "Thank you for voting! You reset your vote."}
         {:text (format "Thank you for voting! You voted:\n`%s`" input)})
@@ -165,8 +165,8 @@ Examples:
 
 (defn votemeal
   [{{:keys [command text user_id]} :form-params}]
-  (let [[action input] (str/split text #"\s" 2)
-        args (some-> input (str/split #"\s"))]
+  (let [[action input] (-> text str/trim (str/split #"\s+" 2))
+        args (some-> input (str/split #"\s+"))]
     (ring-resp/response (invoke {:command command
                                  :action (keyword action)
                                  :input input
