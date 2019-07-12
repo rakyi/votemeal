@@ -28,6 +28,19 @@
           (init-paths candidates preferences)
           (filter #(apply distinct? %) (combo/selections candidates 3))))
 
+(defn group-ties
+  "Resolves ties in sorted list of candidates by grouping them to vectors by
+  their mutual path strength."
+  [candidates paths]
+  (reduce (fn [acc current]
+            (let [rank (peek acc)
+                  previous (peek rank)]
+              (if (= (paths [current previous]) (paths [previous current]))
+                (conj (pop acc) (conj rank current)) ;; add to same rank
+                (conj acc [current]))))              ;; start a new rank
+          [[(first candidates)]]
+          (next candidates)))
+
 (defn winners
   "Takes a collection of candidates and map of their weighted rankings and
   returns candidates ordered by their preference. Ranking is a sequence of
@@ -38,4 +51,4 @@
                    compute-preferences
                    (strongest-paths (seq candidates)))
         path-comp (fn [a b] (> (paths [a b]) (paths [b a])))]
-    (sort path-comp candidates)))  ;; We ignore ties.
+    (group-ties (sort path-comp candidates) paths)))

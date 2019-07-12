@@ -152,9 +152,10 @@ Examples:
                "*Results*"
                (if (pos? count)
                  (concat
-                  (map-indexed (fn [i candidate]
-                                 (format "%d. %s" (inc i) candidate))
-                               winners)
+                  (map-indexed
+                   (fn [i rank]
+                     (format "%d. %s" (inc i) (str/join " " (sort rank))))
+                   winners)
                   [(str "Number of voters: " count)])
                  ["No ballots."])))})
     {:text "You must create a poll first."}))
