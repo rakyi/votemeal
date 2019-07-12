@@ -31,7 +31,7 @@
 (defn group-ties
   "Resolves ties in sorted list of candidates by grouping them to vectors by
   their mutual path strength."
-  [paths candidates]
+  [candidates paths]
   (reduce (fn [acc current]
             (let [rank (peek acc)
                   previous (peek rank)]
@@ -51,4 +51,4 @@
                    compute-preferences
                    (strongest-paths (seq candidates)))
         path-comp (fn [a b] (> (paths [a b]) (paths [b a])))]
-    (group-ties paths (sort path-comp candidates))))
+    (group-ties (sort path-comp candidates) paths)))
