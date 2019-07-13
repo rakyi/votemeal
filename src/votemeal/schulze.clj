@@ -42,10 +42,13 @@
           (next candidates)))
 
 (defn winners
-  "Takes a collection of candidates and map of their weighted rankings and
-  returns candidates ordered by their preference. Ranking is a sequence of
-  sequences of candidates. Candidates in the same inner sequence are treated as
-  having the same preference. Each ranking must contain all the candidates."
+  "Takes a collection of candidates and map of their weighted rankings. Ranking
+  is a sequence of sequences of candidates. Candidates in the same inner
+  sequence are treated as having the same preference. Each ranking must contain
+  all the candidates.
+
+  Returns vector of vectors of candidates ordered by their preference. Multiple
+  candidates in the same inner vector means a tie."
   [candidates weighted-rankings]
   (let [paths (->> weighted-rankings
                    compute-preferences
