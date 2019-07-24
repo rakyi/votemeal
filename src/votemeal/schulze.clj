@@ -15,8 +15,7 @@
               weighted-rankings)))
 
 (defn init-paths [candidates preferences]
-  (into {} (for [[x y :as path] (combo/selections candidates 2)
-                 :when (not= x y)
+  (into {} (for [[x y :as path] (combo/permuted-combinations candidates 2)
                  :let [xy (get preferences [x y] 0)
                        yx (get preferences [y x] 0)
                        strength (if (> xy yx) xy 0)]]
@@ -26,7 +25,7 @@
   (reduce (fn [paths [x y z]]
             (update paths [x y] max (min (paths [x z]) (paths [z y]))))
           (init-paths candidates preferences)
-          (filter #(apply distinct? %) (combo/selections candidates 3))))
+          (combo/permuted-combinations candidates 3)))
 
 (defn group-ties
   "Resolves ties in sorted list of candidates by grouping them to vectors
