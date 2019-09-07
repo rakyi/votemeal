@@ -7,16 +7,16 @@
 
 (deftest valid-ballot
   (is (=
-       (service/make-ballot candidates "a, b c, d")
-       [["a"] ["b" "c"] ["d"]]))
+       [["a"] ["b" "c"] ["d"]]
+       (service/make-ballot candidates "a, b c, d")))
   (is (=
-       (service/make-ballot candidates "a,b  c  ,  d")
-       [["a"] ["b" "c"] ["d"]])))
+       [["a"] ["b" "c"] ["d"]]
+       (service/make-ballot candidates "a,b  c  ,  d"))))
 
 (deftest no-args-ballot
   (is (=
-       (service/make-ballot candidates nil)
-       [(vec candidates)])))
+       [(vec candidates)]
+       (service/make-ballot candidates nil))))
 
 (deftest unknown-candidate-ballot
   (is (thrown?
