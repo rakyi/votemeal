@@ -10,7 +10,6 @@
    [environ.core :refer [env]]
    [io.pedestal.http :as http]
    [io.pedestal.http.body-params :as body-params]
-   [io.pedestal.http.route :as route]
    [io.pedestal.interceptor.chain :as chain]
    [ring.util.response :as ring-resp]
    [votemeal.machine :as machine])
@@ -142,7 +141,7 @@ Examples:
                   (map #(str "- " %)))))
            "No votes registered.")})
 
-(defmethod invoke :close [cmd]
+(defmethod invoke :close [_]
   (if @db
     (let [{:keys [winners count]} (machine/close db)]
       {:response_type "in_channel"
