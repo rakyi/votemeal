@@ -49,8 +49,7 @@
   Returns vector of vectors of candidates ordered by their preference. Multiple
   candidates in the same inner vector means a tie."
   [candidates weighted-rankings]
-  (let [paths (->> weighted-rankings
-                   compute-preferences
-                   (strongest-paths (seq candidates)))
+  (let [preferences (compute-preferences weighted-rankings)
+        paths (strongest-paths (seq candidates) preferences)
         path-comp (fn [a b] (> (paths [a b]) (paths [b a])))]
     (group-ties (sort path-comp candidates) paths)))
