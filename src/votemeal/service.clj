@@ -188,7 +188,7 @@ Examples:
             (let [headers (-> context :request :headers)
                   timestamp (some-> headers
                                     (get "x-slack-request-timestamp")
-                                    Integer.)
+                                    Integer/parseInt)
                   signature (some-> headers
                                     (get "x-slack-signature")
                                     (str/replace-first "v0=" ""))]
@@ -245,7 +245,7 @@ Examples:
               ;;  This can also be your own chain provider/server-fn -- http://pedestal.io/reference/architecture-overview#_chain_provider
               ::http/type :jetty
               ::http/host "0.0.0.0"
-              ::http/port (Integer. (or (env :port) 8080))
+              ::http/port (or (some-> (env :port) Integer/parseInt) 8080)
               ;; Options to pass to the container (Jetty)
               ::http/container-options {:h2c? true
                                         :h2? false
