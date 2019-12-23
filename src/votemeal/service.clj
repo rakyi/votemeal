@@ -77,9 +77,7 @@ Examples:
       (throw (ex-info "You can vote only for the specified candidates" {}))
 
       :else
-      (if (seq unranked)
-        (conj ranking unranked)
-        ranking))))
+      (cond-> ranking (seq unranked) (conj unranked)))))
 
 (defmethod invoke :vote [{:keys [user-id input]}]
   (if @db
