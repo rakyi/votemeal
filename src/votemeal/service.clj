@@ -70,7 +70,7 @@ Examples:
         ranked (flatten ranking)
         unranked (vec (set/difference candidates (set ranked)))]
     (cond
-      (and input (apply (complement distinct?) ranked))
+      (some->> (seq ranked) (apply (complement distinct?)))
       (throw (ex-info "Each candidate can be ranked only once" {}))
 
       (not-every? candidates ranked)
