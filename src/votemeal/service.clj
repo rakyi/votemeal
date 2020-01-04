@@ -82,7 +82,7 @@ Examples:
 (defmethod invoke :vote [{:keys [user-id input]}]
   (if @db
     (try
-      (machine/vote db user-id (make-ballot (-> @db :poll :candidates) input))
+      (machine/vote db user-id (-> @db :poll :candidates (make-ballot input)))
       (if (str/blank? input)
         {:text "Thank you for voting! You reset your vote."}
         {:text (format "Thank you for voting! You voted:\n`%s`" input)})
@@ -118,43 +118,37 @@ Examples:
 (defmethod invoke :candidates [{[arg] :args}]
   {:response_type (if (= arg "publish") "in_channel" "ephemeral")
    :text (if-let [candidates (-> @db :poll :candidates)]
-           (str/join
-            "\n"
-            (cons
-             "*List of candidates*"
-             (map #(str "- " %) (sort candidates))))
+           (->> (sort candidates)
+                (map #(str "- " %))
+                (cons "*List of candidates*")
+                (str/join "\n"))
            "You must create a poll first.")})
 
 (defmethod invoke :voters [{[arg] :args}]
   {:response_type (if (= arg "publish") "in_channel" "ephemeral")
    :text (if-let [users (seq (update-users db))]
-           (str/join
-            "\n"
-            (cons
-             "*List of voters*"
-             (->> users
-                  vals
-                  (map user-name)
-                  sort
-                  (map #(str "- " %)))))
+           (->> (vals users)
+                (map user-name)
+                sort
+                (map #(str "- " %))
+                (cons "*List of voters*")
+                (str/join "\n"))
            "No votes registered.")})
+
+(defn format-winners [winners]
+  (map-indexed (fn [i rank]
+                 (format "%d. %s" (inc i) (str/join ", " (sort rank))))
+               winners))
 
 (defmethod invoke :close [_]
   (if @db
-    (let [{:keys [winners count]} (machine/close db)]
+    (let [{:keys [winners count]} (machine/close db)
+          results (if (pos? count)
+                    (concat (format-winners winners)
+                            [(str "Number of voters: " count)])
+                    ["No ballots."])]
       {:response_type "in_channel"
-       :text (str/join
-              "\n"
-              (cons
-               "*Results*"
-               (if (pos? count)
-                 (concat
-                  (map-indexed
-                   (fn [i rank]
-                     (format "%d. %s" (inc i) (str/join ", " (sort rank))))
-                   winners)
-                  [(str "Number of voters: " count)])
-                 ["No ballots."])))})
+       :text (str/join "\n" (cons "*Results*" results))})
     {:text "You must create a poll first."}))
 
 (defmethod invoke :default [cmd]
