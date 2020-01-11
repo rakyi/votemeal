@@ -3,8 +3,7 @@
    [buddy.core.codecs :as codecs]
    [buddy.core.mac :as mac]
    [clj-slack.users]
-   [clojure.core.async :as async :refer [<!! >!!]]
-   [clojure.java.io :as jio]
+   [clojure.java.io :as io]
    [clojure.set :as set]
    [clojure.string :as str]
    [environ.core :refer [env]]
@@ -61,7 +60,7 @@ Examples:
 
       :else
       (do
-        (machine/new db candidates)
+        (machine/new! db candidates)
         {:response_type "in_channel"}))))
 
 (defn make-ballot [candidates input]
@@ -80,9 +79,9 @@ Examples:
       (cond-> ranking (seq unranked) (conj unranked)))))
 
 (defmethod invoke :vote [{:keys [user-id input]}]
-  (if @db
+  (if-let [db' @db]
     (try
-      (machine/vote db user-id (-> @db :poll :candidates (make-ballot input)))
+      (machine/vote! db user-id (-> db' :poll :candidates (make-ballot input)))
       (if (str/blank? input)
         {:text "Thank you for voting! You reset your vote."}
         {:text (format "Thank you for voting! You voted:\n`%s`" input)})
@@ -91,23 +90,19 @@ Examples:
     {:text "You must create a poll first."}))
 
 (defn unidentified-users [db]
-  (let [{:keys [poll users]} @db
+  (let [{:keys [poll users]} db
         voted (-> poll :ballots keys set)
         identified (-> users keys set)]
     (set/difference voted identified)))
 
-(defn update-users
-  "Obtains user info of yet unidentified users and adds it to db. Returns all
-  users."
+(defn update-users!
+  "Obtains user info of yet unidentified users and adds it to db."
   [db]
-  (when-let [unidentified (seq (unidentified-users db))]
-    (let [c (async/chan)]
-      (doseq [user-id unidentified]
-        (async/thread (>!! c (clj-slack.users/info slack-connection user-id))))
-      (dotimes [_ (count unidentified)]
-        (when-let [user (:user (<!! c))]
-          (machine/add-user db user)))))
-  (:users @db))
+  (->> (unidentified-users @db)
+       (map (fn [user-id]
+              (future (clj-slack.users/info slack-connection user-id))))
+       doall
+       (run! #(some->> @% :user (machine/add-user! db)))))
 
 (defn user-name [user]
   (let [display_name (-> user :profile :display_name)]
@@ -125,8 +120,9 @@ Examples:
            "You must create a poll first.")})
 
 (defmethod invoke :voters [{[arg] :args}]
+  (update-users! db)
   {:response_type (if (= arg "publish") "in_channel" "ephemeral")
-   :text (if-let [users (seq (update-users db))]
+   :text (if-let [users (:users @db)]
            (->> (vals users)
                 (map user-name)
                 sort
@@ -142,7 +138,7 @@ Examples:
 
 (defmethod invoke :close [_]
   (if @db
-    (let [{:keys [winners count]} (machine/close db)
+    (let [{:keys [winners count]} (machine/close! db)
           results (if (pos? count)
                     (concat (format-winners winners)
                             [(str "Number of voters: " count)])
@@ -192,7 +188,7 @@ Examples:
                                    :alg :hmac+sha256})
                     ;; ServletInputStream can be read only once, so we put a
                     ;; copy of the body back.
-                    (let [body-stream (jio/input-stream (.getBytes body))]
+                    (let [body-stream (io/input-stream (.getBytes body))]
                       (update context :request assoc :body body-stream))
                     (chain/terminate context)))
                 (chain/terminate context))))})
