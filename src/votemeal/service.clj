@@ -90,9 +90,8 @@ Examples:
     {:text "You must create a poll first."}))
 
 (defn unidentified-users [db]
-  (let [{:keys [poll users]} db
-        voted (-> poll :ballots keys set)
-        identified (-> users keys set)]
+  (let [voted (-> db :poll :ballots keys set)
+        identified (-> db :users keys set)]
     (set/difference voted identified)))
 
 (defn update-users!
@@ -105,10 +104,10 @@ Examples:
        (run! #(some->> @% :user (machine/add-user! db)))))
 
 (defn user-name [user]
-  (let [display_name (-> user :profile :display_name)]
-    (if (str/blank? display_name)
+  (let [display-name (-> user :profile :display_name)]
+    (if (str/blank? display-name)
       (:real_name user)
-      display_name)))
+      display-name)))
 
 (defmethod invoke :candidates [{[arg] :args}]
   {:response_type (if (= arg "publish") "in_channel" "ephemeral")

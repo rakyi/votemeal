@@ -1,5 +1,5 @@
 (ns votemeal.schulze-test
-  (:require [clojure.test :refer :all]
+  (:require [clojure.test :refer [deftest is]]
             [votemeal.schulze :as schulze]))
 
 (deftest winners
