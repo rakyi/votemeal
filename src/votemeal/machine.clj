@@ -13,7 +13,8 @@
 (defn close! [db]
   (let [{:keys [ballots candidates]} (:poll @db)]
     (reset! db nil)
-    {:winners (->> (vals ballots)
-                   frequencies
+    {:winners (->> ballots
+                   (vals)
+                   (frequencies)
                    (schulze/winners candidates))
      :count (count ballots)}))

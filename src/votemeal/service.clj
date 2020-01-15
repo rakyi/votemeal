@@ -81,7 +81,9 @@ Examples:
 (defmethod invoke :vote [{:keys [user-id input]}]
   (if-let [db' @db]
     (try
-      (machine/vote! db user-id (-> db' :poll :candidates (make-ballot input)))
+      (let [candidates (-> db' :poll :candidates)
+            ballot (make-ballot candidates input)]
+        (machine/vote! db user-id ballot))
       (if (str/blank? input)
         {:text "Thank you for voting! You reset your vote."}
         {:text (format "Thank you for voting! You voted:\n`%s`" input)})
@@ -97,10 +99,11 @@ Examples:
 (defn update-users!
   "Obtains user info of yet unidentified users and adds it to db."
   [db]
-  (->> (unidentified-users @db)
+  (->> @db
+       (unidentified-users) 
        (map (fn [user-id]
               (future (clj-slack.users/info slack-connection user-id))))
-       doall
+       (doall)
        (run! #(some->> @% :user (machine/add-user! db)))))
 
 (defn user-name [user]
@@ -112,7 +115,8 @@ Examples:
 (defmethod invoke :candidates [{[arg] :args}]
   {:response_type (if (= arg "publish") "in_channel" "ephemeral")
    :text (if-let [candidates (-> @db :poll :candidates)]
-           (->> (sort candidates)
+           (->> candidates
+                (sort)
                 (map #(str "- " %))
                 (cons "*List of candidates*")
                 (str/join "\n"))
@@ -122,9 +126,10 @@ Examples:
   (update-users! db)
   {:response_type (if (= arg "publish") "in_channel" "ephemeral")
    :text (if-let [users (:users @db)]
-           (->> (vals users)
+           (->> users
+                (vals)
                 (map user-name)
-                sort
+                (sort)
                 (map #(str "- " %))
                 (cons "*List of voters*")
                 (str/join "\n"))
@@ -151,7 +156,7 @@ Examples:
 
 (defn votemeal
   [{{:keys [command text user_id]} :form-params}]
-  (let [[action input] (-> text str/trim (str/split #"\s+" 2))
+  (let [[action input] (str/split (str/trim text) #"\s+" 2)
         args (some-> input (str/split #"\s+"))]
     (ring-resp/response (invoke {:command command
                                  :action (keyword action)
@@ -175,7 +180,7 @@ Examples:
             (let [headers (-> context :request :headers)
                   timestamp (some-> headers
                                     (get "x-slack-request-timestamp")
-                                    Integer/parseInt)
+                                    (Integer/parseInt))
                   signature (some-> headers
                                     (get "x-slack-signature")
                                     (str/replace-first "v0=" ""))]
