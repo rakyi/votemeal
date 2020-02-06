@@ -169,7 +169,8 @@ Examples:
 (defn recent?
   "Returns true if timestamp is less than seconds apart from now, else false."
   [timestamp seconds]
-  (< (Math/abs (- (.getEpochSecond (Instant/now)) timestamp))
+  (< (Math/abs (- (.getEpochSecond (Instant/now))
+                  timestamp))
      seconds))
 
 (def auth-interceptor

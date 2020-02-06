@@ -35,8 +35,8 @@
             (let [rank (peek ranks)
                   previous (peek rank)]
               (if (= (paths [current previous]) (paths [previous current]))
-                (conj (pop ranks) (conj rank current)) ;; add to same rank
-                (conj ranks [current]))))              ;; start a new rank
+                (conj (pop ranks) (conj rank current))  ; add to same rank
+                (conj ranks [current]))))               ; start a new rank
           [[(first candidates)]]
           (next candidates)))
 
