@@ -101,9 +101,8 @@ Examples:
   [db]
   (->> @db
        (unidentified-users) 
-       (map (fn [user-id]
-              (future (clj-slack.users/info slack-connection user-id))))
-       (doall)
+       (mapv (fn [user-id]
+               (future (clj-slack.users/info slack-connection user-id))))
        (run! #(some->> @% :user (machine/add-user! db)))))
 
 (defn user-name [user]
