@@ -79,9 +79,9 @@ Examples:
       (cond-> ranking (seq unranked) (conj unranked)))))
 
 (defmethod invoke :vote [{:keys [user-id input]}]
-  (if-let [db' @db]
+  (if-let [poll (:poll @db)]
     (try
-      (let [candidates (-> db' :poll :candidates)
+      (let [candidates (:candidates poll)
             ballot (make-ballot candidates input)]
         (machine/vote! db user-id ballot))
       (if (str/blank? input)
@@ -100,7 +100,7 @@ Examples:
   "Obtains user info of yet unidentified users and adds it to db."
   [db]
   (->> @db
-       (unidentified-users) 
+       (unidentified-users)
        (mapv (fn [user-id]
                (future (clj-slack.users/info slack-connection user-id))))
        (run! #(some->> @% :user (machine/add-user! db)))))

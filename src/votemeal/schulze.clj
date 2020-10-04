@@ -38,7 +38,7 @@
                 (conj (pop ranks) (conj rank current))  ; add to same rank
                 (conj ranks [current]))))               ; start a new rank
           [[(first candidates)]]
-          (next candidates)))
+          (rest candidates)))
 
 (defn winners
   "Takes a collection of candidates and map of their weighted rankings. Ranking
