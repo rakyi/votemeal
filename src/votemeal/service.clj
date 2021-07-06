@@ -61,7 +61,7 @@ Examples:
       :else
       (do
         (machine/new! db candidates)
-        {:response_type "in_channel"}))))
+        {:response_type "in_channel" :text "Poll created."}))))
 
 (defn make-ballot [candidates input]
   (let [ranks (some-> input (str/split #"\s*,\s*"))
