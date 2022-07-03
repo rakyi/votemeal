@@ -15,11 +15,13 @@
               weighted-rankings)))
 
 (defn init-paths [candidates preferences]
-  (into {} (for [[x y :as path] (combo/permuted-combinations candidates 2)
-                 :let [xy (get preferences [x y] 0)
-                       yx (get preferences [y x] 0)
-                       strength (if (> xy yx) xy 0)]]
-             [path strength])))
+  (reduce (fn [paths [x y :as path]]
+            (let [xy (get preferences [x y] 0)
+                  yx (get preferences [y x] 0)
+                  strength (if (> xy yx) xy 0)]
+              (assoc paths path strength)))
+          {}
+          (combo/permuted-combinations candidates 2)))
 
 (defn strongest-paths [candidates preferences]
   (reduce (fn [paths [x y z]]
