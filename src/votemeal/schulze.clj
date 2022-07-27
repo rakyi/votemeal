@@ -3,10 +3,10 @@
   (:require [clojure.math.combinatorics :as combo]))
 
 (defn preference-pairs [[preferred-seq & others]]
-  (lazy-cat (for [preferred preferred-seq
-                  other (flatten others)]
-              [preferred other])
-            (some-> others preference-pairs)))
+  (concat (for [preferred preferred-seq
+                other (flatten others)]
+            [preferred other])
+          (some-> others preference-pairs)))
 
 (defn compute-preferences [weighted-rankings]
   (apply merge-with +
